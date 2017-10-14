@@ -121,6 +121,108 @@ def migrate(cr, version):
     openupgrade.update_module_names(
         cr, apriori.renamed_modules.iteritems()
     )
+    # Give a match between Uoms of ail null products and products
+    cr.execute(
+    str("""SELECT id, product_id, uos_id 
+        FROM account_invoice_line  
+        WHERE product_id IS NOT NULL AND uos_id IS NULL"""))
+    data = cr.fetchall()
+    for rec in data:
+        cr.execute(str(
+            """SELECT pc.id category_id, pt.uom_id FROM account_invoice_line ail
+            JOIN product_product pp ON pp.id = ail.product_id
+            JOIN product_template pt ON pt.id = pp.product_tmpl_id
+            JOIN product_uom pu ON pu.id = pt.uom_id
+            JOIN product_uom_categ pc ON pc.id = pu.category_id
+            WHERE ail.id = %s""") % (rec[0]))
+        line = cr.fetchall()
+        if line[0][1] != rec[2] or not rec[2]:
+            cr.execute(str("""
+                UPDATE account_invoice_line
+                SET uos_id = %s
+                WHERE id = %s""") % (line[0][1], rec[0]))
+    # Give a match between Uoms of sol products and products
+    cr.execute(
+    str("""SELECT sol.id, sol.product_id, pc.id category_id FROM sale_order_line sol
+        JOIN product_uom pu ON pu.id = sol.product_uom
+        JOIN product_uom_categ pc ON pc.id = pu.category_id WHERE sol.product_id IS NOT NULL"""))
+    data = cr.fetchall()
+    for rec in data:
+        cr.execute(str(
+            """SELECT pc.id category_id, pt.uom_id FROM sale_order_line sol
+            JOIN product_product pp ON pp.id = sol.product_id
+            JOIN product_template pt ON pt.id = pp.product_tmpl_id
+            JOIN product_uom pu ON pu.id = pt.uom_id
+            JOIN product_uom_categ pc ON pc.id = pu.category_id
+            WHERE sol.id = %s""") % (rec[0]))
+        line = cr.fetchall()
+        if line[0][0] != rec[2]:
+            cr.execute(str("""
+                UPDATE sale_order_line
+                SET product_uom = %s
+                WHERE id = %s""") % (line[0][1], rec[0]))
+    # Give a match between Uoms of aol products and products
+    cr.execute(
+    str("""SELECT ail.id, ail.product_id, pc.id category_id FROM account_invoice_line ail
+        JOIN product_uom pu ON pu.id = ail.uos_id
+        JOIN product_uom_categ pc ON pc.id = pu.category_id WHERE ail.product_id IS NOT NULL"""))
+    data = cr.fetchall()
+    for rec in data:
+        cr.execute(str(
+            """SELECT pc.id category_id, pt.uom_id FROM account_invoice_line ail
+            JOIN product_product pp ON pp.id = ail.product_id
+            JOIN product_template pt ON pt.id = pp.product_tmpl_id
+            JOIN product_uom pu ON pu.id = pt.uom_id
+            JOIN product_uom_categ pc ON pc.id = pu.category_id
+            WHERE ail.id = %s""") % (rec[0]))
+        line = cr.fetchall()
+        if line[0][0] != rec[2]:
+            cr.execute(str("""
+                UPDATE account_invoice_line
+                SET uos_id = %s
+                WHERE id = %s""") % (line[0][1], rec[0]))
+    # Give a match between Uoms of procurement orders products and products
+    cr.execute(
+    str("""SELECT po.id, po.product_id, pc.id category_id FROM procurement_order po
+        JOIN product_uom pu ON pu.id = po.product_uom
+        JOIN product_uom_categ pc ON pc.id = pu.category_id WHERE po.product_id IS NOT NULL"""))
+    data = cr.fetchall()
+    for rec in data:
+        cr.execute(str(
+            """SELECT pc.id category_id, pt.uom_id FROM procurement_order po
+            JOIN product_product pp ON pp.id = po.product_id
+            JOIN product_template pt ON pt.id = pp.product_tmpl_id
+            JOIN product_uom pu ON pu.id = pt.uom_id
+            JOIN product_uom_categ pc ON pc.id = pu.category_id
+            WHERE po.id = %s""") % (rec[0]))
+        line = cr.fetchall()
+        if line[0][0] != rec[2]:
+            import ipdb; ipdb.set_trace()
+            cr.execute(str("""
+                UPDATE procurement_order
+                SET product_uom = %s
+                WHERE id = %s""") % (line[0][1], rec[0]))
+    # Give a match between Uoms of pol products and products
+    cr.execute(
+    str("""SELECT pol.id, pol.product_id, pc.id category_id FROM purchase_order_line pol
+        JOIN product_uom pu ON pu.id = pol.product_uom
+        JOIN product_uom_categ pc ON pc.id = pu.category_id WHERE pol.product_id IS NOT NULL"""))
+    data = cr.fetchall()
+    for rec in data:
+        cr.execute(str(
+            """SELECT pc.id category_id, pt.uom_id FROM purchase_order_line pol
+            JOIN product_product pp ON pp.id = pol.product_id
+            JOIN product_template pt ON pt.id = pp.product_tmpl_id
+            JOIN product_uom pu ON pu.id = pt.uom_id
+            JOIN product_uom_categ pc ON pc.id = pu.category_id
+            WHERE pol.id = %s""") % (rec[0]))
+        line = cr.fetchall()
+        if line[0][0] != rec[2]:
+            cr.execute(str("""
+                UPDATE purchase_order_line
+                SET product_uom = %s
+                WHERE id = %s""") % (line[0][1], rec[0]))
+
     openupgrade.copy_columns(cr, column_copies)
     openupgrade.rename_columns(cr, column_renames)
     remove_obsolete(cr)

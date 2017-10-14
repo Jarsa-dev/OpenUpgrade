@@ -97,9 +97,35 @@ def set_sale_order_qty_delivered(env):
     for line_id, move_id in env.cr.fetchall():
         line = env['sale.order.line'].browse(line_id)
         move = env['stock.move'].browse(move_id)
-        so_qty_map.setdefault(line_id, line.qty_delivered)
+        if line.product_id != move.product_id:
+            product_id = line.mapped('procurement_ids.product_id')
+            product_uom_id = line.mapped('procurement_ids.product_uom')
+            openupgrade.logged_query(
+                env.cr, """
+                UPDATE sale_order_line
+                SET product_id = %s, product_uom = %s
+                WHERE id = %s""" % (product_id[0].id, product_uom_id[0].id, line_id))
+            openupgrade.logged_query(
+                env.cr,"""
+                UPDATE stock_move
+                SET product_id = %s, product_uom = %s
+                WHERE id = %s""" % (product_id[0].id, product_uom_id[0].id, move_id))
+        env.cr.execute("""
+            SELECT product_uom, qty_delivered
+            FROM sale_order_line
+            WHERE id = %s""" % line_id)
+        line = env.cr.fetchone()
+        line_product_uom = uom_obj.browse(line[0])
+        env.cr.execute("""
+            SELECT product_uom, product_uom_qty
+            FROM stock_move
+            WHERE id = %s""" % move_id)
+        move = env.cr.fetchone()
+        move_product_uom = uom_obj.browse(move[0])
+
+        so_qty_map.setdefault(line_id, line[1])
         so_qty_map[line_id] += uom_obj._compute_qty_obj(
-            move.product_uom, move.product_uom_qty, line.product_uom)
+            move_product_uom, move[1], line_product_uom)
 
     if so_qty_map:
         openupgrade.logged_query(

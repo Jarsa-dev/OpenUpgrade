@@ -21,6 +21,7 @@ def migrate(cr, version):
         # we rely on the ORM to write this value
         'alter table ir_model_fields add column store boolean'
     )
+    cr.execute("DELETE FROM ir_ui_view WHERE name LIKE '%im_odoo%';")
     openupgrade.copy_columns(cr, {
         'ir_act_window': [
             ('target', None, None),
@@ -34,7 +35,6 @@ def migrate(cr, version):
         table='ir_act_window')
     cr.execute(
         "update ir_ui_view set type='kanban' where type='sales_team_dashboard'"
-    )
     cr.execute('update res_currency set symbol=name where symbol is null')
     # create xmlids for installed languages
     cr.execute(

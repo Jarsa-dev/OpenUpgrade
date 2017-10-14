@@ -9,3 +9,8 @@ def migrate(env, version):
     openupgrade.load_data(
         env.cr, 'base', 'migrations/10.0.1.3/noupdate_changes.xml'
     )
+    modules = env['ir.module.module'].search([('state', '=', 'uninstalled')])
+    modules.unlink()
+    env.cr.execute("DELETE FROM ir_model_data WHERE name='module_contacts' AND module='base'") 
+    env['ir.module.module'].update_list()
+    env.cr.commit()

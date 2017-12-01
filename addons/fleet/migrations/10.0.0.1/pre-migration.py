@@ -9,4 +9,4 @@ def migrate(env, version):
     openupgrade.logged_query(
     	env.cr, """
     	DELETE FROM res_groups WHERE category_id = (
-    		SELECT id FROM ir_module_category WHERE name = 'Fleet'""")
+    		SELECT id FROM ir_module_category WHERE name = 'Fleet')""")

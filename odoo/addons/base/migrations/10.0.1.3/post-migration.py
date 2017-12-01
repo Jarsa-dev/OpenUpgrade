@@ -11,6 +11,6 @@ def migrate(env, version):
     )
     modules = env['ir.module.module'].search([('state', '=', 'uninstalled')])
     modules.unlink()
-    env.cr.execute("DELETE FROM ir_model_data WHERE name='module_contacts' AND module='base'") 
+    env.cr.execute("DELETE FROM ir_model_data WHERE name='module_web' AND module='base'")
     env['ir.module.module'].update_list()
     env.cr.commit()

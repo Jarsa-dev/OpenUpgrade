@@ -34,7 +34,7 @@ def migrate(cr, version):
         ],
         table='ir_act_window')
     cr.execute(
-        "update ir_ui_view set type='kanban' where type='sales_team_dashboard'"
+        "update ir_ui_view set type='kanban' where type='sales_team_dashboard'")
     cr.execute('update res_currency set symbol=name where symbol is null')
     # create xmlids for installed languages
     cr.execute(

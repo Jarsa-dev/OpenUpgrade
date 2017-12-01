@@ -160,6 +160,25 @@ def migrate(env, version):
                 UPDATE account_invoice_line
                 SET uos_id = %s
                 WHERE id = %s""") % (line[0][1], rec[0]))
+    cr.execute(
+    str("""SELECT id, product_id, uos_id 
+        FROM account_invoice_line  
+        WHERE product_id IS NOT NULL AND uos_id IS NULL"""))
+    data = cr.fetchall()
+    for rec in data:
+        cr.execute(str(
+            """SELECT pc.id category_id, pt.uom_id FROM account_invoice_line ail
+            JOIN product_product pp ON pp.id = ail.product_id
+            JOIN product_template pt ON pt.id = pp.product_tmpl_id
+            JOIN product_uom pu ON pu.id = pt.uom_id
+            JOIN product_uom_categ pc ON pc.id = pu.category_id
+            WHERE ail.id = %s""") % (rec[0]))
+        line = cr.fetchall()
+        if line[0][1] != rec[2] or not rec[2]:
+            cr.execute(str("""
+                UPDATE account_invoice_line
+                SET uos_id = %s
+                WHERE id = %s""") % (line[0][1], rec[0]))
     # Give a match between Uoms of sol products and products
     cr.execute(
     str("""SELECT sol.id, sol.product_id, pc.id category_id FROM sale_order_line sol
@@ -216,7 +235,6 @@ def migrate(env, version):
             WHERE po.id = %s""") % (rec[0]))
         line = cr.fetchall()
         if line[0][0] != rec[2]:
-            import ipdb; ipdb.set_trace()
             cr.execute(str("""
                 UPDATE procurement_order
                 SET product_uom = %s
@@ -242,8 +260,13 @@ def migrate(env, version):
                 SET product_uom = %s
                 WHERE id = %s""") % (line[0][1], rec[0]))
 
+    cr.execute("""UPDATE account_invoice_line
+                SET uos_id = 1
+                WHERE product_id IS NULL
+                AND uos_id IS NULL""")
+
     openupgrade.copy_columns(cr, column_copies)
-    openupgrade.rename_fields(env, field_renames, no_deep=True)
+    openupgrade.rename_fields(env, field_renames, no_deep=False)
     remove_obsolete(cr)
     pre_create_columns(cr)
     cleanup_modules(cr)
@@ -253,3 +276,4 @@ def migrate(env, version):
 def pre_create_columns(cr):
     openupgrade.logged_query(cr, """
         alter table ir_model_fields add column compute text""")
+
